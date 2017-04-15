@@ -35,6 +35,7 @@ public:
 	std::vector<int> faces;
 	std::string material;
 	int row, col;
+	void readObj(string file, float* &vertexData, float* &colorData,int* &vertexNum,int &indicenum,int & vertexnum);
 };
 
 class Material {

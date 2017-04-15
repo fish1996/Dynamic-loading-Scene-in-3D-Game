@@ -1,7 +1,6 @@
 #define _CRT_SECURE_NO_WARNINGS
-/*
 
-#include "GLUT.H"
+#include "object.h"
 #include <windows.h>
 #include <iostream>
 #include <string>
@@ -13,6 +12,12 @@ using namespace std;
 
 static GLuint load_texture(const char *file_name);
 static void ReadMtl(string &cd, string mtlfile, map<string, Material> &mat);
+int power_of_two(int n)
+{
+	if (n <= 0) return 0;
+	return (n&(n - 1)) == 0;
+}
+
 static GLuint load_texture(const char *file_name)
 {
 	int width, height;
@@ -49,7 +54,7 @@ static GLuint load_texture(const char *file_name)
 	{
 		GLint max;
 		glGetIntegerv(GL_MAX_TEXTURE_SIZE, &max);
-		if (!game::power_of_two(width) || !game::power_of_two(height) || width>max || height>max)
+		if (!power_of_two(width) || !power_of_two(height) || width>max || height>max)
 		{
 			const GLint new_width = 1024;
 			const GLint new_height = 1024;
@@ -98,7 +103,7 @@ static GLuint load_texture(const char *file_name)
 	return texture_ID;
 }
 
-void game::readObj(string &cd, string file, map<string, Object> &m, set<string> &n, map<string, Material> &matname)
+void readObj(string &cd, string file, map<string, Object> &m, set<string> &n, map<string, Material> &matname)
 {
 	ifstream in;
 	vector<VERTEX> vertexs;
@@ -155,6 +160,7 @@ void game::readObj(string &cd, string file, map<string, Object> &m, set<string> 
 			VERTEX p;
 			is >> p.x >> p.y >> p.z;
 			vertexs.push_back(p);
+			
 		}
 		else if (word == "vt")
 		{
@@ -236,7 +242,166 @@ void game::readObj(string &cd, string file, map<string, Object> &m, set<string> 
 	in.close();
 }
 
-void game::loadObj(set<string>& objname, map<string, Object> &objmap, map<string, Material> &matname)
+void Object::readObj(string file,float* &vertexData,float* &colorData, int* &indiceData,int &indicenum,int & vertexnum)
+{
+	ifstream in;
+	vector< pair<float, float> > texcoords;
+	vector<VERTEX> normals;
+	vector<int> faces;
+	int row = 0, col = 0;
+	int i = 0;
+	string line, word, goname, mtlname;
+	string cd;
+	char Buffer[MAX_PATH];
+
+	if (file.find(":") != string::npos)
+	{
+		cd = string(file.begin(), file.begin() + file.rfind("\\"));
+	}
+	else if (startswith(file, string(".\\")))
+	{
+		GetCurrentDirectoryA(MAX_PATH, Buffer);
+		cd = Buffer + string(file.begin() + 1, file.begin() + file.rfind("\\"));
+	}
+	else if (startswith(file, string("..\\")))
+	{
+		GetCurrentDirectoryA(MAX_PATH, Buffer);
+		cd = Buffer;
+		cd = string(cd.begin(), cd.begin() + cd.rfind("\\"));
+		cd = cd + string(file.begin() + 2, file.begin() + file.rfind("\\"));
+		cout << cd << endl;
+	}
+	else
+	{
+		GetCurrentDirectoryA(MAX_PATH, Buffer);
+		if (file.rfind("\\") != string::npos)
+		{
+			cd = Buffer + string("\\") + string(file.begin(), file.begin() + file.rfind("\\"));
+		}
+		else
+		{
+			cd = Buffer;
+		}
+	}
+
+	in.open(file.c_str());
+	if (!in)
+	{
+		cout << "Read obj error !" << endl;
+		exit(0);
+	}
+	while (getline(in, line))
+	{
+		if (line.size() == 0 || line[0] == '#') continue;
+		istringstream is(line);
+		is >> word;
+		if (word == "v")
+		{
+			VERTEX p;
+			is >> p.x >> p.y >> p.z;
+			vertexs.push_back(p);
+		}
+		else if (word == "vt")
+		{
+			pair<float, float> p;
+			is >> p.first >> p.second;
+			
+		}
+		else if (word == "vn")
+		{
+			VERTEX p;
+			is >> p.x >> p.y >> p.z;
+		
+		}
+		else if (word == "o" || word == "g")
+		{
+			if (!goname.empty() && !faces.empty())
+			{
+
+			}
+			is >> goname;
+		}
+		else if (word == "f")
+		{
+			int r = 0, c = 0;
+			while (is >> word)
+			{
+				c = count(word.begin(), word.end(), '/');
+				if (c == 0)
+				{
+					faces.push_back(atoi(word.c_str()));
+				}
+				else if (c == 1)
+				{
+					faces.push_back(atoi(string(word.begin(), word.begin() + word.find("/")).c_str()));
+					faces.push_back(atoi(string(word.begin() + word.find("/") + 1, word.end()).c_str()));
+				}
+				else if (c == 2)
+				{
+					int a = word.find("/");
+					int b = word.find("/", a + 1);
+					faces.push_back(atoi(string(word.begin(), word.begin() + a).c_str()));
+					faces.push_back(atoi(string(word.begin() + a + 1, word.begin() + b).c_str()));
+					faces.push_back(atoi(string(word.begin() + b + 1, word.end()).c_str()));
+				}
+				++r;
+			}
+			row = r;
+			col = c + 1;
+		}
+		else if (word == "mtllib")
+		{
+			is >> word;
+		//	ReadMtl(cd, word, matname);
+		}
+		else if (word == "usemtl")
+		{
+
+			is >> mtlname;
+		}
+	}
+	if (!goname.empty() && !faces.empty())
+	{
+	//	Object obj(vertexs.begin(), vertexs.end(), texcoords.begin(), texcoords.end(), normals.begin(), normals.end(), faces.begin(), faces.end(), row, col, mtlname);
+
+	//	m.insert(make_pair(goname, obj));
+	//	n.insert(goname);
+//		faces.clear();
+	}
+	int count = 0;
+	vertexData = new float[vertexs.size() * 3];
+	colorData = new float[vertexs.size() * 3];
+	for (int i = 0; i < vertexs.size(); i++) {
+		colorData[count] = 1.0f;
+		vertexData[count++] = vertexs[i].x;
+		colorData[count] = 0.3f;
+		vertexData[count++] = vertexs[i].y;
+		colorData[count] = 0.0f;
+		vertexData[count++] = vertexs[i].z;
+		
+	}cout << "finish" << endl;
+	count = 0;
+	indiceData = new int[faces.size()];
+	for (int i = 0; i < faces.size(); i++) {
+		indiceData[count++] = faces[i];
+	}
+	vertexnum = vertexs.size()*3;
+	indicenum = faces.size();
+	vertexs.clear();
+	in.close();
+	cout << "finish" << endl;
+}
+
+void setMaterial(Material &mat)
+{
+	std::cout << mat.ambient << std::endl;;
+	glMaterialfv(GL_FRONT, GL_AMBIENT, mat.ambient);
+	glMaterialfv(GL_FRONT, GL_DIFFUSE, mat.diffuse);
+	glMaterialfv(GL_FRONT, GL_SPECULAR, mat.specular);
+	glMaterialfv(GL_FRONT, GL_EMISSION, mat.emission);
+	glMaterialf(GL_FRONT, GL_SHININESS, 100);
+}
+void loadObj(set<string>& objname, map<string, Object> &objmap, map<string, Material> &matname)
 {
 	for (set<string>::iterator it = objname.begin(); it != objname.end(); ++it)
 	{
@@ -346,7 +511,7 @@ static void ReadMtl(string &cd, string mtlfile, map<string, Material> &mat)
 		{
 			is >> specular[0] >> specular[1] >> specular[2];
 		}
-		//else if (word == "Tf")
+	
 		else if (word == "Ke")
 		{
 			is >> emission[0] >> emission[1] >> emission[2];
@@ -371,4 +536,3 @@ static void ReadMtl(string &cd, string mtlfile, map<string, Material> &mat)
 	}
 	in.close();
 }
-*/

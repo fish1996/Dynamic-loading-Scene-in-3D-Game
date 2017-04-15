@@ -3,35 +3,43 @@
 #include <iostream>
 #pragma comment(lib,"glew32.lib")  
 
-GLuint Shader::vaoHandle = 0;
+GLuint Shader::vaoHandle[2] = { 0 };
+int Shader::indicenum = 0;
 using namespace std;
 //顶点位置数组    
+/*
 float positionData[] = {
-	-0.5f,-0.5f,0.0f,1.0f,
-	0.5f,-0.5f,0.0f,1.0f,
-	0.5f,0.5f,0.0f,1.0f,
-	-0.5f,0.5f,0.0f,1.0f
+	-0.5f,-0.5f,0.0f,
+	0.5f,-0.5f,0.0f,
+	0.5f,0.5f,0.0f,
 };
 //顶点颜色数组    
 float colorData[] = {
-	1.0f, 0.0f, 0.0f,1.0f,
-	0.0f, 1.0f, 0.0f,1.0f,
-	0.0f, 0.0f, 1.0f,1.0f,
-	1.0f,1.0f,0.0f,1.0f
+	1.0f, 0.0f, 0.0f,
+	0.0f, 1.0f, 0.0f,
+	0.0f, 0.0f, 1.0f,
 };
-
+*/
 void display()
 {
-	glClear(GL_COLOR_BUFFER_BIT);
-	//使用VAO、VBO绘制    
-	glBindVertexArray(Shader::vaoHandle);
-	glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
-	glBindVertexArray(0);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	//glUniformMatrix4fv(perspectiveMatrixUniformLocation, 1, GL_TRUE, M);
+
+	glBindVertexArray(Shader::vaoHandle[0]);
+	//glUniform3f(offsetUniformLocation, 0.0, 0.0, 0.0);
+	//glDrawArrays(GL_TRIANGLES, 0, 24);
+	glDrawElements(GL_TRIANGLES, Shader::indicenum, GL_UNSIGNED_INT, 0);
+
+
 	glutSwapBuffers();
+	glutPostRedisplay();
+
 }
 
 Shader::Shader(const char* verPath, const char* fragPath)
 {
+	
 	vertexPath = new char[strlen(verPath) + 1];
 	strcpy(vertexPath, verPath);
 	fragmentPath = new char[strlen(fragPath) + 1];
@@ -134,7 +142,9 @@ void Shader::initialize()
 	if (err != GLEW_OK) {
 		cout << glewGetErrorString(err) << endl;
 	}
-	
+	obj = new Object();
+	obj->readObj("..\\..\\res\\obj\\test.obj", positionData,colorData,indiceData,indicenum,vertexnum);
+
 	//加载顶点着色器
 	addVertexShader();
 	//加载片段着色器
@@ -142,7 +152,8 @@ void Shader::initialize()
 	linking();
 	//绑定并加载VAO，VBO  
 	initVBO();
-	glClearColor(0.0, 0.0, 0.0, 0.0);
+	
+
 }
 
 void Shader::linking()
@@ -187,35 +198,44 @@ void Shader::linking()
 
 void Shader::initVBO()
 {
-	//绑定VAO  
-	glGenVertexArrays(1, &vaoHandle);
-	glBindVertexArray(vaoHandle);
-
-	// Create and populate the buffer objects    
-	GLuint vboHandles[2];
-	glGenBuffers(2, vboHandles);
+	GLuint vboHandles[3];
+	glGenBuffers(3, vboHandles);
 	GLuint positionBufferHandle = vboHandles[0];
 	GLuint colorBufferHandle = vboHandles[1];
+	GLuint indiceBufferHandle = vboHandles[2];
 
 	//绑定VBO以供使用    
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
 	//加载数据到VBO    
-	glBufferData(GL_ARRAY_BUFFER, 16 * sizeof(float),
+	glBufferData(GL_ARRAY_BUFFER, vertexnum*sizeof(float),
 		positionData, GL_STATIC_DRAW);
 
 	//绑定VBO以供使用    
 	glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
 	//加载数据到VBO    
-	glBufferData(GL_ARRAY_BUFFER, 16 * sizeof(float),
+	glBufferData(GL_ARRAY_BUFFER, vertexnum * sizeof(float),
 		colorData, GL_STATIC_DRAW);
+	cout << vertexnum * sizeof(float) << " " << indicenum * sizeof(int) << endl;
+	//绑定VBO以供使用    
+	glBindBuffer(GL_ARRAY_BUFFER, indiceBufferHandle);
+	//加载数据到VBO    
+	glBufferData(GL_ARRAY_BUFFER, indicenum*sizeof(int),
+		indiceData, GL_STATIC_DRAW);
+
+	//绑定VAO  
+	glGenVertexArrays(1, vaoHandle);
+	glBindVertexArray(vaoHandle[0]);
 
 	glEnableVertexAttribArray(0);//顶点坐标    
-	glEnableVertexAttribArray(1);//顶点颜色    
+	glEnableVertexAttribArray(1);//顶点颜色 
+	glEnableVertexAttribArray(2);//顶点颜色 
 
 								 //调用glVertexAttribPointer之前需要进行绑定操作    
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
-	glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
 	glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
-	cout << "success" << endl;
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indiceBufferHandle);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
+
 }

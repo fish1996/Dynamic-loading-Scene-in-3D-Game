@@ -1,4 +1,4 @@
-//∂®“ÂGLSL∞Ê±æ    
+ 
 #version 440    
     
 in vec4 VertexPosition;    
@@ -9,5 +9,5 @@ out vec4 Color;
 void main()    
 {    
     Color =VertexColor;    
-   gl_Position = VertexPosition;  
+    gl_Position = VertexPosition;  
 }    
