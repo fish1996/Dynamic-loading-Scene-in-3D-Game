@@ -103,146 +103,7 @@ static GLuint load_texture(const char *file_name)
 	return texture_ID;
 }
 
-void readObj(string &cd, string file, map<string, Object> &m, set<string> &n, map<string, Material> &matname)
-{
-	ifstream in;
-	vector<VERTEX> vertexs;
-	vector< pair<float, float> > texcoords;
-	vector<VERTEX> normals;
-	vector<int> faces;
-	int row = 0, col = 0;
-	string line, word, goname, mtlname;
-	char Buffer[MAX_PATH];
-
-	if (file.find(":") != string::npos)
-	{
-		cd = string(file.begin(), file.begin() + file.rfind("\\"));
-	}
-	else if (startswith(file, string(".\\")))
-	{
-		GetCurrentDirectoryA(MAX_PATH, Buffer);
-		cd = Buffer + string(file.begin() + 1, file.begin() + file.rfind("\\"));
-	}
-	else if (startswith(file, string("..\\")))
-	{
-		GetCurrentDirectoryA(MAX_PATH, Buffer);
-		cd = Buffer;
-		cd = string(cd.begin(), cd.begin() + cd.rfind("\\"));
-		cd = cd + string(file.begin() + 2, file.begin() + file.rfind("\\"));
-		cout << cd << endl;
-	}
-	else
-	{
-		GetCurrentDirectoryA(MAX_PATH, Buffer);
-		if (file.rfind("\\") != string::npos)
-		{
-			cd = Buffer + string("\\") + string(file.begin(), file.begin() + file.rfind("\\"));
-		}
-		else
-		{
-			cd = Buffer;
-		}
-	}
-
-	in.open(file.c_str());
-	if (!in)
-	{
-		cout << "Read obj error !" << endl;
-		exit(0);
-	}
-	while (getline(in, line))
-	{
-		if (line.size() == 0 || line[0] == '#') continue;
-		istringstream is(line);
-		is >> word;
-		if (word == "v")
-		{
-			VERTEX p;
-			is >> p.x >> p.y >> p.z;
-			vertexs.push_back(p);
-			
-		}
-		else if (word == "vt")
-		{
-			pair<float, float> p;
-			is >> p.first >> p.second;
-			texcoords.push_back(p);
-		}
-		else if (word == "vn")
-		{
-			VERTEX p;
-			is >> p.x >> p.y >> p.z;
-			normals.push_back(p);
-		}
-		else if (word == "o" || word == "g")
-		{
-			if (!goname.empty() && !faces.empty())
-			{
-				Object obj(vertexs.begin(), vertexs.end(), texcoords.begin(), texcoords.end(), normals.begin(), normals.end(), faces.begin(), faces.end(), row, col, mtlname);
-				while (n.count(goname) != 0)
-				{
-					goname.push_back('0');
-				}
-				m.insert(make_pair(goname, obj));
-				n.insert(goname);
-				faces.clear();
-			}
-			is >> goname;
-		}
-		else if (word == "f")
-		{
-			int r = 0, c = 0;
-			while (is >> word)
-			{
-				c = count(word.begin(), word.end(), '/');
-				if (c == 0)
-				{
-					faces.push_back(atoi(word.c_str()));
-				}
-				else if (c == 1)
-				{
-					faces.push_back(atoi(string(word.begin(), word.begin() + word.find("/")).c_str()));
-					faces.push_back(atoi(string(word.begin() + word.find("/") + 1, word.end()).c_str()));
-				}
-				else if (c == 2)
-				{
-					int a = word.find("/");
-					int b = word.find("/", a + 1);
-					faces.push_back(atoi(string(word.begin(), word.begin() + a).c_str()));
-					faces.push_back(atoi(string(word.begin() + a + 1, word.begin() + b).c_str()));
-					faces.push_back(atoi(string(word.begin() + b + 1, word.end()).c_str()));
-				}
-				++r;
-			}
-			row = r;
-			col = c + 1;
-		}
-		else if (word == "mtllib")
-		{
-			is >> word;
-			ReadMtl(cd, word, matname);
-		}
-		else if (word == "usemtl")
-		{
-
-			is >> mtlname;
-		}
-	}
-	if (!goname.empty() && !faces.empty())
-	{
-		Object obj(vertexs.begin(), vertexs.end(), texcoords.begin(), texcoords.end(), normals.begin(), normals.end(), faces.begin(), faces.end(), row, col, mtlname);
-		while (n.count(goname) != 0)
-		{
-			goname.push_back('0');
-		}
-		m.insert(make_pair(goname, obj));
-		n.insert(goname);
-		faces.clear();
-	}
-	in.close();
-}
-
-void Object::readObj(string file,float* &vertexData,float* &colorData, int* &indiceData,int &indicenum,int & vertexnum)
+void Object::readObj(string file,float* &vertexData,float* &colorData, float* &normalData,int* &indiceData,int &indicenum,int & vertexnum)
 {
 	ifstream in;
 	vector< pair<float, float> > texcoords;
@@ -254,90 +115,72 @@ void Object::readObj(string file,float* &vertexData,float* &colorData, int* &ind
 	string cd;
 	char Buffer[MAX_PATH];
 
-	if (file.find(":") != string::npos)
-	{
+	if (file.find(":") != string::npos) {
 		cd = string(file.begin(), file.begin() + file.rfind("\\"));
 	}
-	else if (startswith(file, string(".\\")))
-	{
+	else if (startswith(file, string(".\\"))) {
 		GetCurrentDirectoryA(MAX_PATH, Buffer);
 		cd = Buffer + string(file.begin() + 1, file.begin() + file.rfind("\\"));
 	}
-	else if (startswith(file, string("..\\")))
-	{
+	else if (startswith(file, string("..\\"))) {
 		GetCurrentDirectoryA(MAX_PATH, Buffer);
 		cd = Buffer;
 		cd = string(cd.begin(), cd.begin() + cd.rfind("\\"));
 		cd = cd + string(file.begin() + 2, file.begin() + file.rfind("\\"));
 		cout << cd << endl;
 	}
-	else
-	{
+	else {
 		GetCurrentDirectoryA(MAX_PATH, Buffer);
-		if (file.rfind("\\") != string::npos)
-		{
+		if (file.rfind("\\") != string::npos) {
 			cd = Buffer + string("\\") + string(file.begin(), file.begin() + file.rfind("\\"));
 		}
-		else
-		{
+		else {
 			cd = Buffer;
 		}
 	}
 
 	in.open(file.c_str());
-	if (!in)
-	{
+	if (!in) {
 		cout << "Read obj error !" << endl;
 		exit(0);
 	}
-	while (getline(in, line))
-	{
+	while (getline(in, line)) {
 		if (line.size() == 0 || line[0] == '#') continue;
 		istringstream is(line);
 		is >> word;
-		if (word == "v")
-		{
+		if (word == "v") { //顶点
 			VERTEX p;
 			is >> p.x >> p.y >> p.z;
 			vertexs.push_back(p);
 		}
-		else if (word == "vt")
-		{
+		else if (word == "vt") {
 			pair<float, float> p;
 			is >> p.first >> p.second;
 			
 		}
-		else if (word == "vn")
-		{
+		else if (word == "vn") { //顶点法线
 			VERTEX p;
 			is >> p.x >> p.y >> p.z;
-		
+			normals.push_back(p);
 		}
-		else if (word == "o" || word == "g")
-		{
-			if (!goname.empty() && !faces.empty())
-			{
+		else if (word == "o" || word == "g") {
+			if (!goname.empty() && !faces.empty()) {
 
 			}
 			is >> goname;
 		}
-		else if (word == "f")
-		{
+		else if (word == "f") {
 			int r = 0, c = 0;
-			while (is >> word)
-			{
+			while (is >> word) {
 				c = count(word.begin(), word.end(), '/');
-				if (c == 0)
-				{
+				if (c == 0) {
 					faces.push_back(atoi(word.c_str()));
 				}
-				else if (c == 1)
-				{
+				else if (c == 1) {
 					faces.push_back(atoi(string(word.begin(), word.begin() + word.find("/")).c_str()));
 					faces.push_back(atoi(string(word.begin() + word.find("/") + 1, word.end()).c_str()));
 				}
-				else if (c == 2)
-				{
+				else if (c == 2) {
 					int a = word.find("/");
 					int b = word.find("/", a + 1);
 					faces.push_back(atoi(string(word.begin(), word.begin() + a).c_str()));
@@ -349,19 +192,15 @@ void Object::readObj(string file,float* &vertexData,float* &colorData, int* &ind
 			row = r;
 			col = c + 1;
 		}
-		else if (word == "mtllib")
-		{
+		else if (word == "mtllib") {
 			is >> word;
 		//	ReadMtl(cd, word, matname);
 		}
-		else if (word == "usemtl")
-		{
-
+		else if (word == "usemtl") {
 			is >> mtlname;
 		}
 	}
-	if (!goname.empty() && !faces.empty())
-	{
+	if (!goname.empty() && !faces.empty()) {
 	//	Object obj(vertexs.begin(), vertexs.end(), texcoords.begin(), texcoords.end(), normals.begin(), normals.end(), faces.begin(), faces.end(), row, col, mtlname);
 
 	//	m.insert(make_pair(goname, obj));
@@ -371,25 +210,29 @@ void Object::readObj(string file,float* &vertexData,float* &colorData, int* &ind
 	int count = 0;
 	vertexData = new float[vertexs.size() * 3];
 	colorData = new float[vertexs.size() * 3];
+	normalData = new float[vertexs.size() * 3];
 	for (int i = 0; i < vertexs.size(); i++) {
 		colorData[count] = 1.0f;
+		normalData[count] = normals[i].x;
 		vertexData[count++] = vertexs[i].x;
 		colorData[count] = 0.3f;
+		normalData[count] = normals[i].y;
 		vertexData[count++] = vertexs[i].y;
 		colorData[count] = 0.0f;
+		normalData[count] = normals[i].z;
 		vertexData[count++] = vertexs[i].z;
 		
-	}cout << "finish" << endl;
+	}
 	count = 0;
 	indiceData = new int[faces.size()];
 	for (int i = 0; i < faces.size(); i++) {
 		indiceData[count++] = faces[i];
 	}
+
 	vertexnum = vertexs.size()*3;
 	indicenum = faces.size();
 	vertexs.clear();
 	in.close();
-	cout << "finish" << endl;
 }
 
 void setMaterial(Material &mat)
@@ -401,66 +244,10 @@ void setMaterial(Material &mat)
 	glMaterialfv(GL_FRONT, GL_EMISSION, mat.emission);
 	glMaterialf(GL_FRONT, GL_SHININESS, 100);
 }
-void loadObj(set<string>& objname, map<string, Object> &objmap, map<string, Material> &matname)
-{
-	for (set<string>::iterator it = objname.begin(); it != objname.end(); ++it)
-	{
-		Object temp = objmap[*it];
-		setMaterial(matname[temp.material]);
-
-		glEnable(GL_TEXTURE_2D);
-		glBindTexture(GL_TEXTURE_2D, matname[temp.material].map);
-		if (temp.row == 3) glBegin(GL_TRIANGLES);
-		else glBegin(GL_QUADS);
-		vector<int>::iterator iter = temp.faces.begin();
-		if (temp.col == 1)
-		{
-			while (iter != temp.faces.end())
-			{
-				glVertex3f(temp.vertexs[*iter - 1].x, temp.vertexs[*iter - 1].y, temp.vertexs[*iter - 1].z);
-				++iter;
-			}
-		}
-		else if (temp.col == 2)
-		{
-			while (iter != temp.faces.end())
-			{
-				glTexCoord2f(temp.texcoords[*(iter + 1) - 1].first, temp.texcoords[*(iter + 1) - 1].second);
-				glVertex3f(temp.vertexs[*iter - 1].x, temp.vertexs[*iter - 1].y, temp.vertexs[*iter - 1].z);
-				iter += 2;
-			}
-		}
-		else if (temp.col == 3 && !temp.texcoords.empty())
-		{
-			while (iter != temp.faces.end())
-			{
-				glNormal3f(temp.normals[*(iter + 2) - 1].x, temp.normals[*(iter + 2) - 1].y, temp.normals[*(iter + 2) - 1].z);
-				glTexCoord2f(temp.texcoords[*(iter + 1) - 1].first, temp.texcoords[*(iter + 1) - 1].second);
-				glVertex3f(temp.vertexs[*iter - 1].x, temp.vertexs[*iter - 1].y, temp.vertexs[*iter - 1].z);
-				iter += 3;
-			}
-		}
-		else
-		{
-			while (iter != temp.faces.end())
-			{
-				glNormal3f(temp.normals[*(iter + 2) - 1].x, temp.normals[*(iter + 2) - 1].y, temp.normals[*(iter + 2) - 1].z);
-				glVertex3f(temp.vertexs[*iter - 1].x, temp.vertexs[*iter - 1].y, temp.vertexs[*iter - 1].z);
-				iter += 3;
-			}
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-		glEnd();
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	}
-}
-
 
 
 static void ReadMtl(string &cd, string mtlfile, map<string, Material> &mat)
 {
-
 	ifstream in;
 	string line, word, ptname, ntname, fname;
 	unsigned map;
@@ -471,66 +258,52 @@ static void ReadMtl(string &cd, string mtlfile, map<string, Material> &mat)
 	float emission[3] = { 0.0,0.0,0.0 };
 
 	in.open((cd + "\\" + mtlfile).c_str());
-	if (!in)
-	{
+	if (!in) {
 		cout << "Read mtl error !" << endl;
 		return;
 	}
-	while (getline(in, line))
-	{
+	while (getline(in, line)) {
 		if (line.size() == 0 || line[0] == '#') continue;
 		istringstream is(line);
 		is >> word;
-		if (word == "newmtl")
-		{
+		if (word == "newmtl") {
 			is >> ntname;
-			if (!ptname.empty())
-			{
-				if (hasmap)
-				{
+			if (!ptname.empty()) {
+				if (hasmap) {
 					printf("hasMap\n");
 					mat.insert(make_pair(ptname, Material(ambient, diffuse, specular, emission, map)));
 				}
-				else
-				{
+				else {
 					mat.insert(make_pair(ptname, Material(ambient, diffuse, specular, emission, 0)));
 				}
 			}
 			ptname = ntname;
 			hasmap = false;
 		}
-		else if (word == "Ka")
-		{
+		else if (word == "Ka") {
 			is >> ambient[0] >> ambient[1] >> ambient[2];
 		}
-		else if (word == "Kd")
-		{
+		else if (word == "Kd") {
 			is >> diffuse[0] >> diffuse[1] >> diffuse[2];
 		}
-		else if (word == "Ks")
-		{
+		else if (word == "Ks") {
 			is >> specular[0] >> specular[1] >> specular[2];
 		}
 	
-		else if (word == "Ke")
-		{
+		else if (word == "Ke") {
 			is >> emission[0] >> emission[1] >> emission[2];
 		}
-		else if (word == "map_Kd" || word == "map_Ka")
-		{
+		else if (word == "map_Kd" || word == "map_Ka") {
 			is >> fname;
 			map = load_texture((cd + "\\" + fname).c_str());
 			hasmap = true;
 		}
 	}
-	if (!ntname.empty())
-	{
-		if (hasmap)
-		{
+	if (!ntname.empty()) {
+		if (hasmap) {
 			mat.insert(make_pair(ptname, Material(ambient, diffuse, specular, emission, map)));
 		}
-		else
-		{
+		else {
 			mat.insert(make_pair(ptname, Material(ambient, diffuse, specular, emission, 0)));
 		}
 	}

@@ -1,5 +1,18 @@
 #include "Shader.h"
 #include <iostream>
+/*
+using namespace std;
+int main()
+{
+	int n;
+	cin >> n;
+	for (int i = 1; i <= pow(2,n)-1; i++) {
+		int x = i << 1;
+		int ans = x & (~(x - 1));
+		int y = log2(ans);
+		cout << "move " << y << " from" << " to"<<endl;
+	}
+}*/
 
 int main(int argc, char** argv)
 {

@@ -11,6 +11,7 @@ private:
 	GLuint vShader, fShader;//顶点/片段着色器对象    
 	float *positionData;
 	float *colorData;
+	float *normalData;
 	int *indiceData;
 	static int indicenum;
 	int vertexnum;

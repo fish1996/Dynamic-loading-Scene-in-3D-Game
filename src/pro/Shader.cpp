@@ -24,11 +24,11 @@ void display()
 {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//glUniformMatrix4fv(perspectiveMatrixUniformLocation, 1, GL_TRUE, M);
-
 	glBindVertexArray(Shader::vaoHandle[0]);
-	//glUniform3f(offsetUniformLocation, 0.0, 0.0, 0.0);
-	//glDrawArrays(GL_TRIANGLES, 0, 24);
+	glEnableClientState(GL_VERTEX_ARRAY);//启用顶点坐标数组  
+	glEnableClientState(GL_NORMAL_ARRAY);//启用法线向量数组  
+
+
 	glDrawElements(GL_TRIANGLES, Shader::indicenum, GL_UNSIGNED_INT, 0);
 
 
@@ -143,7 +143,7 @@ void Shader::initialize()
 		cout << glewGetErrorString(err) << endl;
 	}
 	obj = new Object();
-	obj->readObj("..\\..\\res\\obj\\test.obj", positionData,colorData,indiceData,indicenum,vertexnum);
+	obj->readObj("..\\..\\res\\obj\\test.obj", positionData,colorData,normalData,indiceData,indicenum,vertexnum);
 
 	//加载顶点着色器
 	addVertexShader();
@@ -152,20 +152,17 @@ void Shader::initialize()
 	linking();
 	//绑定并加载VAO，VBO  
 	initVBO();
-	
-
 }
 
 void Shader::linking()
-{
-	//3、链接着色器对象    
+{   
 	//创建着色器程序    
 	GLuint programHandle = glCreateProgram();
-	if (!programHandle)
-	{
+	if (!programHandle) {
 		cerr << "ERROR : create program failed" << endl;
 		exit(1);
 	}
+
 	//将着色器程序链接到所创建的程序中    
 	glAttachShader(programHandle, vShader);
 	glAttachShader(programHandle, fShader);
@@ -174,14 +171,12 @@ void Shader::linking()
 	//查询链接的结果    
 	GLint linkStatus;
 	glGetProgramiv(programHandle, GL_LINK_STATUS, &linkStatus);
-	if (GL_FALSE == linkStatus)
-	{
+	if (GL_FALSE == linkStatus) {
 		cerr << "ERROR : link shader program failed" << endl;
 		GLint logLen;
 		glGetProgramiv(programHandle, GL_INFO_LOG_LENGTH,
 			&logLen);
-		if (logLen > 0)
-		{
+		if (logLen > 0) {
 			char *log = (char *)malloc(logLen);
 			GLsizei written;
 			glGetProgramInfoLog(programHandle, logLen,
@@ -190,52 +185,56 @@ void Shader::linking()
 			cerr << log << endl;
 		}
 	}
-	else//链接成功，在OpenGL管线中使用渲染程序    
-	{
+	else {
 		glUseProgram(programHandle);
 	}
 }
 
 void Shader::initVBO()
 {
-	GLuint vboHandles[3];
-	glGenBuffers(3, vboHandles);
+	GLuint vboHandles[4];
+	glGenBuffers(4, vboHandles);
 	GLuint positionBufferHandle = vboHandles[0];
 	GLuint colorBufferHandle = vboHandles[1];
 	GLuint indiceBufferHandle = vboHandles[2];
-
-	//绑定VBO以供使用    
-	glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
-	//加载数据到VBO    
+	GLuint normalBufferHandle = vboHandles[3];
+   
+	// 绑定顶点
+	glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle); 
 	glBufferData(GL_ARRAY_BUFFER, vertexnum*sizeof(float),
 		positionData, GL_STATIC_DRAW);
-
-	//绑定VBO以供使用    
-	glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
-	//加载数据到VBO    
+  
+	// 绑定颜色
+	glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle); 
 	glBufferData(GL_ARRAY_BUFFER, vertexnum * sizeof(float),
 		colorData, GL_STATIC_DRAW);
 	cout << vertexnum * sizeof(float) << " " << indicenum * sizeof(int) << endl;
-	//绑定VBO以供使用    
+  
+	// 绑定索引
 	glBindBuffer(GL_ARRAY_BUFFER, indiceBufferHandle);
-	//加载数据到VBO    
 	glBufferData(GL_ARRAY_BUFFER, indicenum*sizeof(int),
 		indiceData, GL_STATIC_DRAW);
 
-	//绑定VAO  
+	// 绑定法线
+	glBindBuffer(GL_ARRAY_BUFFER, normalBufferHandle);
+	glBufferData(GL_ARRAY_BUFFER, indicenum*sizeof(int),
+		indiceData, GL_STATIC_DRAW);
+
+	// 绑定VAO  
 	glGenVertexArrays(1, vaoHandle);
 	glBindVertexArray(vaoHandle[0]);
 
 	glEnableVertexAttribArray(0);//顶点坐标    
 	glEnableVertexAttribArray(1);//顶点颜色 
-	glEnableVertexAttribArray(2);//顶点颜色 
+	glEnableVertexAttribArray(2);//顶点索引 
+	glEnableVertexAttribArray(3);//顶点法线 
 
-								 //调用glVertexAttribPointer之前需要进行绑定操作    
 	glBindBuffer(GL_ARRAY_BUFFER, positionBufferHandle);
 	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
 	glBindBuffer(GL_ARRAY_BUFFER, colorBufferHandle);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indiceBufferHandle);
 	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
-
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, normalBufferHandle);
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, 0, (GLubyte *)NULL);
 }
